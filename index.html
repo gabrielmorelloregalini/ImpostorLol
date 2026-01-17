@@ -11,6 +11,8 @@
   --card: #1e293b;
   --accent: #22c55e;
   --text: #e5e7eb;
+  --impostor-bg: #7f1d1d;
+  --impostor-border: #ef4444;
 }
 
 * {
@@ -51,26 +53,24 @@ h1, h2 {
   border-radius: 12px;
 }
 
-.counter {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 15px;
-  margin: 15px 0;
+.config label {
+  display: block;
+  margin-top: 15px;
+  margin-bottom: 5px;
 }
 
-.counter button {
-  font-size: 24px;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
+select {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
   border: none;
-  background: var(--accent);
-  color: #022c22;
+  background: #020617;
+  color: var(--text);
+  font-size: 16px;
 }
 
 button.primary {
-  margin-top: 15px;
+  margin-top: 20px;
   width: 100%;
   padding: 14px;
   font-size: 18px;
@@ -127,6 +127,14 @@ button.primary {
   transform: rotateY(180deg);
 }
 
+/* ---------- IMPOSTOR ---------- */
+
+.card-back.impostor {
+  background: var(--impostor-bg);
+  border: 2px solid var(--impostor-border);
+  color: #fee2e2;
+}
+
 .small {
   opacity: 0.7;
   margin-top: 10px;
@@ -138,21 +146,22 @@ button.primary {
 
 <!-- ---------- CONFIG SCREEN ---------- -->
 <div id="configScreen" class="screen">
-  <h1>IMPOSTOR DE LOL</h1>
+  <h1>IMPOSTOR</h1>
+
   <div class="config">
-    <p>Cantidad de jugadores</p>
-    <div class="counter">
-      <button id="minus">−</button>
-      <span id="playersCount">4</span>
-      <button id="plus">+</button>
-    </div>
+    <label for="playersSelect">Jugadores</label>
+    <select id="playersSelect"></select>
+
+    <label for="impostorsSelect">Impostores</label>
+    <select id="impostorsSelect"></select>
+
     <button class="primary" id="startGame">Comenzar</button>
   </div>
 </div>
 
 <!-- ---------- GAME SCREEN ---------- -->
 <div id="gameScreen" class="screen hidden">
-  <h2 id="playerLabel">Jugador 1</h2>
+  <h2 id="playerLabel">Jugador</h2>
 
   <div id="card" class="card">
     <div class="card-inner">
@@ -167,66 +176,89 @@ button.primary {
 <!-- ---------- END SCREEN ---------- -->
 <div id="endScreen" class="screen hidden">
   <h1>Empieza el juego</h1>
+  <h2 id="startingPlayer"></h2>
   <button class="primary" id="newGame">Nueva partida</button>
 </div>
 
 <script>
 /* ---------- STATE ---------- */
 let players = 4;
+let impostors = 1;
 let currentPlayer = 0;
-let impostorIndex = 0;
+let impostorIndexes = [];
 let secretWord = "";
 let showing = false;
+let startingPlayerIndex = 0;
 
 /* ---------- ELEMENTS ---------- */
+const playersSelect = document.getElementById("playersSelect");
+const impostorsSelect = document.getElementById("impostorsSelect");
+
 const configScreen = document.getElementById("configScreen");
 const gameScreen = document.getElementById("gameScreen");
 const endScreen = document.getElementById("endScreen");
 
-const playersCount = document.getElementById("playersCount");
 const playerLabel = document.getElementById("playerLabel");
 const card = document.getElementById("card");
 const cardFront = document.querySelector(".card-front");
 const cardBack = document.getElementById("cardBack");
+const startingPlayerText = document.getElementById("startingPlayer");
 
-/* ---------- CONFIG LOGIC ---------- */
-document.getElementById("plus").onclick = () => {
-  if (players < 15) players++;
-  playersCount.textContent = players;
+/* ---------- INIT SELECTS ---------- */
+for (let i = 3; i <= 15; i++) {
+  const opt = document.createElement("option");
+  opt.value = i;
+  opt.textContent = i;
+  playersSelect.appendChild(opt);
+}
+
+function updateImpostorsOptions() {
+  impostorsSelect.innerHTML = "";
+  for (let i = 1; i < players; i++) {
+    const opt = document.createElement("option");
+    opt.value = i;
+    opt.textContent = i;
+    impostorsSelect.appendChild(opt);
+  }
+}
+
+playersSelect.value = 4;
+updateImpostorsOptions();
+
+playersSelect.onchange = () => {
+  players = parseInt(playersSelect.value);
+  updateImpostorsOptions();
 };
 
-document.getElementById("minus").onclick = () => {
-  if (players > 3) players--;
-  playersCount.textContent = players;
+impostorsSelect.onchange = () => {
+  impostors = parseInt(impostorsSelect.value);
 };
 
-/* ---------- API: LOAD RANDOM CHAMP ---------- */
+/* ---------- API ---------- */
 async function loadRandomChampion() {
   const response = await fetch(
     "https://ddragon.leagueoflegends.com/cdn/12.6.1/data/en_US/champion.json"
   );
-
   const json = await response.json();
-
-  // data es un objeto: { Aatrox: {...}, Ahri: {...}, ... }
-  const championsObject = json.data;
-
-  // Convertimos a array
-  const championsArray = Object.values(championsObject);
-
-  // Elegimos uno al azar
-  const randomChampion =
-    championsArray[Math.floor(Math.random() * championsArray.length)];
-
-  // Usamos el nombre como palabra secreta
-  secretWord = randomChampion.name;
+  const champs = Object.values(json.data);
+  secretWord = champs[Math.floor(Math.random() * champs.length)].name;
 }
 
-/* ---------- START GAME ---------- */
+/* ---------- GAME START ---------- */
 document.getElementById("startGame").onclick = async () => {
+  players = parseInt(playersSelect.value);
+  impostors = parseInt(impostorsSelect.value);
+
   await loadRandomChampion();
 
-  impostorIndex = Math.floor(Math.random() * players);
+  impostorIndexes = [];
+  while (impostorIndexes.length < impostors) {
+    const idx = Math.floor(Math.random() * players);
+    if (!impostorIndexes.includes(idx)) impostorIndexes.push(idx);
+  }
+
+  startingPlayerIndex = Math.floor(Math.random() * players);
+
   currentPlayer = 0;
   showing = false;
 
@@ -240,6 +272,7 @@ document.getElementById("startGame").onclick = async () => {
 function updatePlayer() {
   playerLabel.textContent = `Jugador ${currentPlayer + 1} de ${players}`;
   cardFront.textContent = "Tocar para ver";
+  cardBack.classList.remove("impostor");
   card.classList.remove("flipped");
   showing = false;
 }
@@ -247,14 +280,22 @@ function updatePlayer() {
 card.onclick = () => {
   if (!showing) {
     card.classList.add("flipped");
-    cardBack.textContent =
-      currentPlayer === impostorIndex ? "IMPOSTOR" : secretWord;
+
+    if (impostorIndexes.includes(currentPlayer)) {
+      cardBack.textContent = "IMPOSTOR";
+      cardBack.classList.add("impostor");
+    } else {
+      cardBack.textContent = secretWord;
+    }
+
     showing = true;
   } else {
     currentPlayer++;
     if (currentPlayer >= players) {
       gameScreen.classList.add("hidden");
       endScreen.classList.remove("hidden");
+      startingPlayerText.textContent =
+        "Comienza el Jugador " + (startingPlayerIndex + 1);
     } else {
       updatePlayer();
     }
@@ -270,3 +311,4 @@ document.getElementById("newGame").onclick = () => {
 
 </body>
 </html>
+
