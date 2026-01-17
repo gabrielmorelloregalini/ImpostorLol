@@ -1,2 +1,2 @@
 # ImpostorLol
-Pagina estatica que hace el impostor pero de lol xd.
+Pagina estatica donde se puede jugar al impostor con campeones de lol.
