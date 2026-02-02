@@ -37,13 +37,9 @@ body {
   text-align: center;
 }
 
-.hidden {
-  display: none;
-}
+.hidden { display: none; }
 
-h1, h2 {
-  margin-bottom: 15px;
-}
+h1, h2 { margin-bottom: 15px; }
 
 /* ---------- CONFIG ---------- */
 
@@ -53,7 +49,7 @@ h1, h2 {
   border-radius: 12px;
 }
 
-.config label {
+label {
   display: block;
   margin-top: 15px;
   margin-bottom: 5px;
@@ -118,16 +114,9 @@ button.primary {
   text-align: center;
 }
 
-.card-front {
-  background: var(--card);
-}
-
 .card-back {
-  background: var(--card);
   transform: rotateY(180deg);
 }
-
-/* ---------- IMPOSTOR ---------- */
 
 .card-back.impostor {
   background: var(--impostor-bg);
@@ -144,24 +133,24 @@ button.primary {
 
 <body>
 
-<!-- ---------- CONFIG SCREEN ---------- -->
+<!-- CONFIG -->
 <div id="configScreen" class="screen">
   <h1>IMPOSTOR</h1>
 
   <div class="config">
-    <label for="playersSelect">Jugadores</label>
+    <label>Jugadores</label>
     <select id="playersSelect"></select>
 
-    <label for="impostorsSelect">Impostores</label>
+    <label>Impostores</label>
     <select id="impostorsSelect"></select>
 
     <button class="primary" id="startGame">Comenzar</button>
   </div>
 </div>
 
-<!-- ---------- GAME SCREEN ---------- -->
+<!-- GAME -->
 <div id="gameScreen" class="screen hidden">
-  <h2 id="playerLabel">Jugador</h2>
+  <h2 id="playerLabel"></h2>
 
   <div id="card" class="card">
     <div class="card-inner">
@@ -173,7 +162,7 @@ button.primary {
   <div class="small">Volvé a tocar para pasar</div>
 </div>
 
-<!-- ---------- END SCREEN ---------- -->
+<!-- END -->
 <div id="endScreen" class="screen hidden">
   <h1>Empieza el juego</h1>
   <h2 id="startingPlayer"></h2>
@@ -181,6 +170,20 @@ button.primary {
 </div>
 
 <script>
+/* ---------- RANDOM SEGURO ---------- */
+function randomInt(min, max) {
+  const range = max - min + 1;
+  const byte = new Uint8Array(1);
+  let num;
+
+  do {
+    crypto.getRandomValues(byte);
+    num = byte[0];
+  } while (num >= 256 - (256 % range));
+
+  return min + (num % range);
+}
+
 /* ---------- STATE ---------- */
 let players = 4;
 let impostors = 1;
@@ -193,87 +196,65 @@ let startingPlayerIndex = 0;
 /* ---------- ELEMENTS ---------- */
 const playersSelect = document.getElementById("playersSelect");
 const impostorsSelect = document.getElementById("impostorsSelect");
-
 const configScreen = document.getElementById("configScreen");
 const gameScreen = document.getElementById("gameScreen");
 const endScreen = document.getElementById("endScreen");
-
 const playerLabel = document.getElementById("playerLabel");
 const card = document.getElementById("card");
-const cardFront = document.querySelector(".card-front");
 const cardBack = document.getElementById("cardBack");
 const startingPlayerText = document.getElementById("startingPlayer");
 
-/* ---------- INIT SELECTS ---------- */
+/* ---------- INIT ---------- */
 for (let i = 3; i <= 15; i++) {
-  const opt = document.createElement("option");
-  opt.value = i;
-  opt.textContent = i;
-  playersSelect.appendChild(opt);
+  playersSelect.innerHTML += `<option value="${i}">${i}</option>`;
 }
 
-function updateImpostorsOptions() {
+function updateImpostors() {
   impostorsSelect.innerHTML = "";
   for (let i = 1; i < players; i++) {
-    const opt = document.createElement("option");
-    opt.value = i;
-    opt.textContent = i;
-    impostorsSelect.appendChild(opt);
+    impostorsSelect.innerHTML += `<option value="${i}">${i}</option>`;
   }
 }
 
-playersSelect.value = 4;
-updateImpostorsOptions();
-
-playersSelect.onchange = () => {
-  players = parseInt(playersSelect.value);
-  updateImpostorsOptions();
-};
-
-impostorsSelect.onchange = () => {
-  impostors = parseInt(impostorsSelect.value);
-};
+updateImpostors();
 
 /* ---------- API ---------- */
 async function loadRandomChampion() {
-  const response = await fetch(
+  const res = await fetch(
     "https://ddragon.leagueoflegends.com/cdn/12.6.1/data/en_US/champion.json"
   );
-  const json = await response.json();
-  const champs = Object.values(json.data);
-  secretWord = champs[Math.floor(Math.random() * champs.length)].name;
+  const data = Object.values((await res.json()).data);
+  secretWord = data[randomInt(0, data.length - 1)].name;
 }
 
 /* ---------- GAME START ---------- */
 document.getElementById("startGame").onclick = async () => {
-  players = parseInt(playersSelect.value);
-  impostors = parseInt(impostorsSelect.value);
+  players = +playersSelect.value;
+  impostors = +impostorsSelect.value;
 
   await loadRandomChampion();
 
   impostorIndexes = [];
   while (impostorIndexes.length < impostors) {
-    const idx = Math.floor(Math.random() * players);
+    const idx = randomInt(0, players - 1);
     if (!impostorIndexes.includes(idx)) impostorIndexes.push(idx);
   }
 
-  startingPlayerIndex = Math.floor(Math.random() * players);
+  startingPlayerIndex = randomInt(0, players - 1);
 
   currentPlayer = 0;
   showing = false;
 
   configScreen.classList.add("hidden");
   gameScreen.classList.remove("hidden");
-
   updatePlayer();
 };
 
 /* ---------- GAME LOGIC ---------- */
 function updatePlayer() {
   playerLabel.textContent = `Jugador ${currentPlayer + 1} de ${players}`;
-  cardFront.textContent = "Tocar para ver";
-  cardBack.classList.remove("impostor");
   card.classList.remove("flipped");
+  cardBack.classList.remove("impostor");
   showing = false;
 }
 
@@ -287,7 +268,6 @@ card.onclick = () => {
     } else {
       cardBack.textContent = secretWord;
     }
-
     showing = true;
   } else {
     currentPlayer++;
