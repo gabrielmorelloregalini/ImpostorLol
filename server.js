@@ -1,18 +1,29 @@
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
+const path = require("path");
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-app.use(express.static("public"));
+/* ---------- SERVIR PUBLIC ---------- */
+app.use(express.static(path.join(__dirname, "public")));
+
+/* ---------- RUTA PRINCIPAL ---------- */
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
 let rooms = {};
 
 function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
+
+/* ---------- FETCH FIX PARA RENDER ---------- */
+const fetch = (...args) =>
+  import("node-fetch").then(({ default: fetch }) => fetch(...args));
 
 /* ---------- API LOL ---------- */
 async function getRandomChampion() {
@@ -22,10 +33,8 @@ async function getRandomChampion() {
     );
     const data = Object.values((await res.json()).data);
     return data[randomInt(0, data.length - 1)].name;
-  } catch (e) {
-    console.log("Error API, fallback");
-    const fallback = ["Perro", "Pizza", "Avión", "Playa"];
-    return fallback[randomInt(0, fallback.length - 1)];
+  } catch {
+    return "Fallback";
   }
 }
 
@@ -96,6 +105,9 @@ io.on("connection", (socket) => {
   });
 });
 
-server.listen(3000, () => {
-  console.log("Servidor en http://localhost:3000");
+/* ---------- PUERTO RENDER ---------- */
+const PORT = process.env.PORT || 3000;
+
+server.listen(PORT, () => {
+  console.log("Servidor corriendo en puerto", PORT);
 });
