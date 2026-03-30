@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Impostor Online</title>
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<!-- HOME -->
+<div id="home" class="screen">
+  <h1>IMPOSTOR</h1>
+
+  <input id="name" placeholder="Tu nombre">
+
+  <button class="primary" onclick="crearSala()">Crear sala</button>
+
+  <input id="roomInput" placeholder="Código sala">
+  <button class="primary" onclick="unirseSala()">Unirse</button>
+</div>
+
+<!-- LOBBY -->
+<div id="lobby" class="screen hidden">
+  <h2>Sala: <span id="roomCode"></span></h2>
+
+  <ul id="playersList"></ul>
+
+  <select id="impostors">
+    <option value="1">1 impostor</option>
+    <option value="2">2 impostores</option>
+  </select>
+
+  <button class="primary" onclick="startGame()">Empezar</button>
+</div>
+
+<!-- GAME -->
+<div id="game" class="screen hidden">
+  <div id="card" class="card">
+    <div class="card-inner">
+      <div class="card-front">Tocar para ver</div>
+      <div class="card-back" id="cardBack"></div>
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>
